@@ -84,16 +84,54 @@ const floorMesh = new THREE.Mesh(
   whiteMaterial
 )
 
-floorMesh.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(-1, 0, 0), Math.PI/2));
-cubeMesh.position.y = 2
+floorMesh.quaternion.setFromAxisAngle(new THREE.Vector3(-1, 0, 0), Math.PI/2);
+
+cubeMesh.position.y = 5
 
 scene.add(cubeMesh, floorMesh);
 
+//Physics
+const world = new CANNON.World({
+  gravity: new CANNON.Vec3(0, -9.82, 0),
+  allowSleep: true,
+});
+world.broadphase = new CANNON.SAPBroadphase(world);
+
+const cubeShape = new CANNON.Box(new CANNON.Vec3(1, 1, 1));
+const cubeBody = new CANNON.Body({
+  mass: 5,
+  shape: cubeShape,
+})
+cubeBody.position.copy(cubeMesh.position);
+world.addBody(cubeBody);
+
+const planeShape = new CANNON.Plane();
+const planeBody = new CANNON.Body({
+  mass: 0,
+  shape: planeShape,
+});
+planeBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI/2);
+world.addBody(planeBody);
+
+
+
 //Tick function
 const clock = new THREE.Clock();
-
+let lastTime = 0;
 
 const tick = ()=>{
+  //Delta time 
+  const time = clock.getElapsedTime();
+  const deltaTime = time - lastTime;
+  lastTime = time;
+
+  
+  //Update physics world
+  world.step(1/60, deltaTime, 3);
+  
+  cubeMesh.position.copy(cubeBody.position)
+  cubeMesh.quaternion.copy(cubeBody.quaternion)
+  
   //Update controls
   orbitControls.update()
 
